@@ -1,0 +1,7 @@
+dist/
+*.user
+.vs/
+*.log
+diagnostics*.txt
+test-results.txt
+*.zip
