@@ -1,4 +1,4 @@
-param([switch]$Test)
+﻿param([switch]$Test)
 $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
 $framework = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
@@ -9,11 +9,11 @@ New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 $references = @('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Runtime.Serialization.dll','System.Xaml.dll') | ForEach-Object { '/r:' + (Join-Path $framework $_) }
 $references += @('WindowsBase.dll','PresentationCore.dll','PresentationFramework.dll') | ForEach-Object { '/r:' + (Join-Path $framework ('WPF\' + $_)) }
 $sources = @((Get-ChildItem -LiteralPath (Join-Path $repoRoot 'src') -Filter '*.cs').FullName)
-$sources += Join-Path $repoRoot 'tests\SelfTests.cs'
+$sources += @((Get-ChildItem -LiteralPath (Join-Path $repoRoot 'tests') -Filter '*.cs').FullName)
 $executable = Join-Path $outDir 'PeripheralHalo.exe'
 $iconOptions = @()
 if (Test-Path -LiteralPath (Join-Path $repoRoot 'assets\app.ico')) { $iconOptions += '/win32icon:' + (Join-Path $repoRoot 'assets\app.ico') }
-& $compiler /nologo /target:winexe /platform:x64 /optimize+ /utf8output "/out:$executable" "/win32manifest:$(Join-Path $repoRoot 'app.manifest')" "/resource:$(Join-Path $repoRoot 'src\razer-models.txt'),razer-models.txt" $iconOptions $references $sources
+& $compiler /nologo /target:winexe /platform:x64 /optimize+ /utf8output "/out:$executable" "/win32manifest:$(Join-Path $repoRoot 'app.manifest')" "/resource:$(Join-Path $repoRoot 'src\razer-models.txt'),razer-models.txt" "/resource:$(Join-Path $repoRoot 'src\razer-keyboards.txt'),razer-keyboards.txt" $iconOptions $references $sources
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed.' }
 Copy-Item -LiteralPath (Join-Path $repoRoot 'PeripheralHalo.exe.config') -Destination $outDir
 foreach ($document in @('README.md','LICENSE','THIRD_PARTY_NOTICES.md')) { if (Test-Path -LiteralPath (Join-Path $repoRoot $document)) { Copy-Item -LiteralPath (Join-Path $repoRoot $document) -Destination $outDir } }

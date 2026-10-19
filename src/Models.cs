@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+﻿// SPDX-License-Identifier: GPL-2.0-only
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -90,6 +90,8 @@ namespace PeripheralHalo
                 new DeviceReading {Id="demo-mouse",Name="G PRO X SUPERLIGHT 2",Brand="LOGITECH",Kind=DeviceKind.Mouse,Battery=86,Charge=ChargeState.Discharging,Source="演示数据 · HID++ 0x1004",IsDemo=true},
                 new DeviceReading {Id="demo-razer",Name="Razer Viper V3 Pro",Brand="RAZER",Kind=DeviceKind.Mouse,Battery=62,Charge=ChargeState.Charging,Source="演示数据 · Razer HID",IsDemo=true},
                 new DeviceReading {Id="demo-low",Name="MX Master 3S",Brand="LOGITECH",Kind=DeviceKind.Mouse,Battery=18,Charge=ChargeState.Discharging,Source="演示数据 · HID++ 0x1004",IsDemo=true},
+                new DeviceReading {Id="demo-keyboard",Name="Razer DeathStalker V2 Pro TKL",Brand="RAZER",Kind=DeviceKind.Keyboard,Battery=72,Charge=ChargeState.Discharging,Source="演示数据 · Razer 键盘 HID",IsDemo=true},
+                new DeviceReading {Id="demo-audio",Name="Razer Barracuda Pro",Brand="RAZER",Kind=DeviceKind.Headset,Battery=38,Charge=ChargeState.Charging,Source="演示数据 · Razer 耳机 PA",IsDemo=true},
                 new DeviceReading {Id="demo-headset",Name="G435 LIGHTSPEED",Brand="LOGITECH",Kind=DeviceKind.Headset,Source="演示设备 · 无可用电量协议",Detail="G435 的 LIGHTSPEED 精确电量读取暂未实现。可按耳机电源键查看灯色：绿灯 31–100%，红灯 15–30%，闪红灯低于 15%。",IsDemo=true}
             };
         }

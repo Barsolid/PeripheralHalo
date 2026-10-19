@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+﻿// SPDX-License-Identifier: GPL-2.0-only
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +12,7 @@ namespace PeripheralHalo
     {
         public string Path, Product, Container;
         public ushort Vid, Pid, UsagePage, Usage, InputLength, OutputLength, FeatureLength;
+        public int InterfaceNumber { get {var m=System.Text.RegularExpressions.Regex.Match(Path ?? "",@"&mi_([0-9a-f]{2})",System.Text.RegularExpressions.RegexOptions.IgnoreCase);return m.Success?Convert.ToInt32(m.Groups[1].Value,16):-1;} }
         public string Key { get { return BatteryPolicy.StableId(Container ?? Path); } }
     }
     internal static class Native
@@ -89,10 +90,10 @@ namespace PeripheralHalo
         }
     }
     // Overlapped I/O with cancellation: no permanently blocked HID worker or pinned buffer on timeout.
-    public sealed class HidTransport : IDisposable
+    public sealed class HidTransport : IHidTransport
     {
         private readonly SafeFileHandle handle;
-        public readonly HidEndpoint Endpoint;
+        public HidEndpoint Endpoint { get; private set; }
         public HidTransport(HidEndpoint endpoint,bool featureOnly=false) {
             Endpoint=endpoint;
             handle=Native.CreateFile(endpoint.Path,featureOnly?0u:0xC0000000,3,IntPtr.Zero,3,0x40000000,IntPtr.Zero);

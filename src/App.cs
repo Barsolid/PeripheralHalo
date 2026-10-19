@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+﻿// SPDX-License-Identifier: GPL-2.0-only
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using Forms=System.Windows.Forms;
 
 [assembly: AssemblyTitle("PeripheralHalo")]
 [assembly: AssemblyDescription("外设光环 · 无线外设电量托盘")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 namespace PeripheralHalo
 {
     internal sealed class TrayEntry : IDisposable
@@ -124,7 +124,7 @@ namespace PeripheralHalo
         }
         public static void WriteDiagnostics(string path,List<DeviceReading> readings)
         {
-            var lines=new List<string> {"PeripheralHalo 1.0.0 · 本地诊断",DateTime.Now.ToString("s"),"仅列出 USB 型号、接口能力与电量；不包含序列号或设备路径。",""};
+            var lines=new List<string> {"PeripheralHalo 1.1.0 · 本地诊断",DateTime.Now.ToString("s"),"仅列出 USB 型号、接口能力与电量；不包含序列号或设备路径。",""};
             foreach(var e in HidDiscovery.Enumerate()) lines.Add(String.Format("USB {0:X4}:{1:X4} | {2} | usage {3:X4}:{4:X4} | input {5} output {6} feature {7}",e.Vid,e.Pid,e.Product,e.UsagePage,e.Usage,e.InputLength,e.OutputLength,e.FeatureLength));
             lines.Add("");foreach(var d in readings) lines.Add(d.Name+" | "+d.Value+" | "+d.State+" | "+d.Source+" | "+d.Detail);
             File.WriteAllLines(path,lines,Encoding.UTF8);

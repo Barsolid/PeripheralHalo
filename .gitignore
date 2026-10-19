@@ -5,3 +5,4 @@ dist/
 diagnostics*.txt
 test-results.txt
 *.zip
+backups/

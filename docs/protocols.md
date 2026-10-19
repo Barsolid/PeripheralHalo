@@ -1,6 +1,6 @@
-# 协议说明与实现边界
+﻿# 协议说明与实现边界
 
-所有外设命令都用于读取。应用不发送 DPI、灯效、配对、固件更新或充电配置命令。
+所有功能都用于读取电量；PA 耳机还需开启并释放临时通讯会话。应用不发送 DPI、灯效、配对、固件更新或充电配置命令。
 
 ## Logitech HID++
 
@@ -15,11 +15,11 @@
 - `1F20` function 0：部分耳机的毫伏与在线/充电标志。
 - 在短报文通道回退到 HID++ 1.0 `81/0D` 与 `81/07` 电量寄存器。后者仅为粗略档位。
 
-该实现不覆盖所有罗技耳机协议，例如 Centurion。G435 特别保留为未知状态，不对其发送不相关的 HID++ 探测命令。
+1.1 增加 G PRO X 2 0AF7 的 Centurion 桥接与旧固件查询，仍不覆盖所有罗技耳机。G435 特别保留为未知状态，不对其发送不相关的 HID++ 探测命令。
 
 ## Razer
 
-电量/充电命令及 PID 到 transaction ID 的对应关系来自 [OpenRazer](https://github.com/openrazer/openrazer/tree/master/driver)。`src/razer-models.txt` 为 2026-10-18 获取源码时的 69 个 USB 配置，不代表 69 款全部实测通过。
+电量/充电命令及 PID 到 transaction ID 的对应关系来自 [OpenRazer](https://github.com/openrazer/openrazer/tree/master/driver)。`src/razer-models.txt` 保留 68 个鼠标配置；另有 src/razer-keyboards.txt 的 13 个键盘配置。配置数量包含同产品的有线/无线版本，不代表逐台实测。
 
 HID feature report：报告 ID 0 + 90 字节厂商报文。命令类 `07`，电量 `80`，充电 `84`，参数长度 2。返回成功状态、transaction ID、命令类、命令号和 XOR 校验和均需匹配。将参数中第二字节的 0–255 换算为 0–100%。可更换电池的型号不查询充电状态。
 
@@ -32,3 +32,7 @@ Windows 在 HFP Hands-Free 服务实例上可能发布电量属性 `{104EA319-6E
 该路径不进行无线询问，不主动扫描或改变音频连接。电量来自 Windows 缓存，更新频率由耳机与系统决定，不推断充电状态。当前没有 G435 蓝牙实机验证结果。
 
 G435 LIGHTSPEED 仅识别接收器与说明限制。官方灯色说明见 [Logitech Support](https://support.logi.com/hc/en-ph/articles/4409384013591-Check-the-battery-level-of-your-G435)。软件没有手工输入、时间推算或模拟百分比来冒充真实读数的回退路径。
+
+## 1.1 新协议
+
+详见 [1.1 适配说明](upgrade-1.1.md)。实现文件为 src/Headsets.cs，传输接口可由模拟接收器替换，覆盖报文匹配、离线、异常退出和会话清理。

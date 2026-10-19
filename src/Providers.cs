@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+﻿// SPDX-License-Identifier: GPL-2.0-only
 // Protocol references and attribution: docs/protocols.md and THIRD_PARTY_NOTICES.md.
 using System;
 using System.Collections.Generic;
@@ -62,6 +62,7 @@ namespace PeripheralHalo
     public sealed class DeviceScanner
     {
         private readonly Dictionary<string,List<LogitechBinding>> cache=new Dictionary<string,List<LogitechBinding>>();
+        private readonly HeadsetReader headsets=new HeadsetReader();
         private readonly Dictionary<string,DateTime> cacheAge=new Dictionary<string,DateTime>();
         private static byte FeatureIndex(HidTransport t,byte slot,ushort feature)
         {
@@ -76,7 +77,8 @@ namespace PeripheralHalo
         }
         private static DeviceReading Base(HidEndpoint e)
         {
-            string name=String.IsNullOrWhiteSpace(e.Product)?(e.Vid==0x046D?"Logitech":"Razer")+" USB "+e.Pid.ToString("X4"):e.Product;
+            string headsetName;
+            string name=HeadsetCatalog.Logitech.TryGetValue(e.Pid,out headsetName) && e.Vid==0x046D?headsetName:String.IsNullOrWhiteSpace(e.Product)?(e.Vid==0x046D?"Logitech":"Razer")+" USB "+e.Pid.ToString("X4"):e.Product;
             return new DeviceReading {Id=e.Key,Name=name,Brand=e.Vid==0x046D?"LOGITECH":"RAZER",Kind=DeviceReading.InferKind(name),Source="USB HID · "+e.Vid.ToString("X4")+":"+e.Pid.ToString("X4"),Detail="已检测到 USB 接口；无法确认无线设备是否在线。可能处于休眠、未配对，或当前型号尚未适配。"};
         }
         private List<DeviceReading> LogitechDevice(List<HidEndpoint> endpoints)
@@ -88,7 +90,9 @@ namespace PeripheralHalo
                 fallback.Detail="已检测到 G435 接收器，不能据此判断耳机是否在线。LIGHTSPEED 精确电量读取暂未实现。按耳机电源键：绿灯 31–100%，红灯 15–30%，闪红灯低于 15%。";
                 fallback.Source="G435 · 暂无可用电量协议";devices.Add(fallback);return devices;
             }
-            var candidates=endpoints.Where(e=>(e.UsagePage==0xFF00 || e.UsagePage==0xFF43) && e.OutputLength>=7 && e.InputLength>=7 && e.OutputLength<=64 && e.InputLength<=64).OrderByDescending(e=>e.OutputLength>=20).ToList();
+            if(root.Pid==0x0AF7) return new List<DeviceReading> {headsets.LogitechCenturion(endpoints,Base)};
+            if(HeadsetCatalog.Logitech.ContainsKey(root.Pid)) fallback.Kind=DeviceKind.Headset;
+            var candidates=endpoints.Where(HeadsetCatalog.LogitechCandidate).OrderByDescending(e=>e.OutputLength>=20).ToList();
             List<LogitechBinding> bindings;
             if(cache.TryGetValue(root.Key,out bindings) && DateTime.UtcNow-cacheAge[root.Key]<TimeSpan.FromMinutes(5)) {
                 foreach(var binding in bindings) {
@@ -105,7 +109,7 @@ namespace PeripheralHalo
             bindings=new List<LogitechBinding>();
             foreach(var e in candidates) {
                 try {using(var t=new HidTransport(e)) {
-                    foreach(byte slot in new byte[] {1,2,3,4,5,6,0xFF}) {
+                    foreach(byte slot in HeadsetCatalog.Logitech.ContainsKey(root.Pid)?new byte[]{0xFF,1}:new byte[] {1,2,3,4,5,6,0xFF}) {
                         if(bindings.Any(b=>b.Slot==slot)) continue;
                         // Only probe battery features after a successful root response; sleeping slots cost one timeout.
                         byte[] ping=t.Hidpp(slot,0,1,0,0,0x5A);
@@ -122,8 +126,9 @@ namespace PeripheralHalo
                             byte nameIndex=FeatureIndex(t,slot,0x0005);
                             if(nameIndex!=0) {
                                 d.Name=ReadName(t,slot,nameIndex,d.Name);byte[] kind=t.Hidpp(slot,nameIndex,2);
-                                d.Kind=kind!=null?(kind[4]==3?DeviceKind.Mouse:kind[4]==0||kind[4]==1?DeviceKind.Keyboard:DeviceReading.InferKind(d.Name)):DeviceReading.InferKind(d.Name);
+                                d.Kind=kind!=null?(kind[4]==3?DeviceKind.Mouse:kind[4]==0||kind[4]==2?DeviceKind.Keyboard:DeviceReading.InferKind(d.Name)):DeviceReading.InferKind(d.Name);
                             }
+                            if(HeadsetCatalog.Logitech.ContainsKey(root.Pid)) d.Kind=DeviceKind.Headset;
                             d.Id=root.Key+"-"+slot;devices.Add(d);bindings.Add(new LogitechBinding {Slot=slot,Index=index,Feature=f,Name=d.Name,Kind=d.Kind});break;
                         }
                     }
@@ -159,12 +164,13 @@ namespace PeripheralHalo
             }
             return null;
         }
-        private static DeviceReading RazerDevice(List<HidEndpoint> endpoints)
+        private DeviceReading RazerDevice(List<HidEndpoint> endpoints)
         {
+            if(HeadsetCatalog.Razer.ContainsKey(endpoints[0].Pid)) return headsets.Razer(endpoints,Base);
             var d=Base(endpoints[0]);RazerProfile profile;
             if(!RazerProfile.All.TryGetValue(endpoints[0].Pid,out profile)) {d.Detail="当前雷蛇 USB 型号尚无已登记电量协议。设备 HID 编号：1532:"+endpoints[0].Pid.ToString("X4");return d;}
-            d.Name=profile.Name;d.Kind=DeviceKind.Mouse;
-            foreach(var e in endpoints.Where(e=>e.FeatureLength==91)) {
+            d.Name=profile.Name;d.Kind=profile.Kind;d.Connection=profile.Connection;
+            foreach(var e in endpoints.Where(e=>e.FeatureLength==91).OrderBy(e=>profile.PreferredInterface>=0 && e.InterfaceNumber==profile.PreferredInterface?0:1)) {
                 try {using(var t=new HidTransport(e,true)) {
                     byte[] battery=RazerQuery(t,profile.Transaction,0x80);if(battery==null) continue;
                     d.Battery=(int)Math.Round(battery[10]*100.0/255);d.Source="Razer HID · 0x07 / 0x80";d.Detail="设备报告电量，0–255 数值换算为百分比。";
@@ -185,28 +191,39 @@ namespace PeripheralHalo
             result.AddRange(BluetoothBattery.Scan());
             return result.OrderByDescending(d=>d.Battery.HasValue).ThenBy(d=>d.Name).ToList();
         }
-        public void ClearCache() {cache.Clear();cacheAge.Clear();}
+        public void ClearCache() {cache.Clear();cacheAge.Clear();headsets.ClearCache();}
     }
     public sealed class RazerProfile
     {
         public byte Transaction;
         public string Name;
         public bool ReplaceableBattery;
+        public DeviceKind Kind;
+        public int PreferredInterface=-1;
+        public string Connection="2.4 GHz / USB";
         private static Dictionary<ushort,RazerProfile> all;
-        public static Dictionary<ushort,RazerProfile> All { get {
-            if(all!=null) return all;
-            all=new Dictionary<ushort,RazerProfile>();
-            using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("razer-models.txt"))
-            using(var reader=new StreamReader(stream,Encoding.UTF8)) {
-                string line;while((line=reader.ReadLine())!=null) {
-                    var p=line.Split('|');if(p.Length!=3) continue;
-                    ushort pid=Convert.ToUInt16(p[0].Substring(2),16);byte tid=Convert.ToByte(p[1].Substring(2),16);
-                    string n=p[2];string clean=n.Replace("_WIRELESS", "").Replace("_WIRED", "").Replace("_RECEIVER", "").Replace("_BLUETOOTH", "").Replace("_ALT", "").Replace('_',' ');
-                    bool aa=new[] {"ATHERIS", "BASILISK_X_HYPERSPEED", "OROCHI_V2", "DEATHADDER_V2_X", "NAGA_V2_HYPERSPEED", "VIPER_V3_HYPERSPEED", "BASILISK_V3_X", "BASILISK_MOBILE"}.Any(n.Contains);
-                    all[pid]=new RazerProfile {Transaction=tid,Name="Razer "+System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(clean.ToLowerInvariant()),ReplaceableBattery=aa};
-                }
-            }
+        public static Dictionary<ushort,RazerProfile> All {get {
+            if(all==null) {all=new Dictionary<ushort,RazerProfile>();Load("razer-models.txt",DeviceKind.Mouse);Load("razer-keyboards.txt",DeviceKind.Keyboard);}
             return all;
         }}
+        private static void Load(string resource,DeviceKind kind)
+        {
+            using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream(resource))
+            using(var reader=new StreamReader(stream,Encoding.UTF8)) {
+                string line;while((line=reader.ReadLine())!=null) {
+                    var p=line.Split('|');if(p.Length<3) continue;
+                    ushort pid=Convert.ToUInt16(p[0].Substring(2),16);byte tid=Convert.ToByte(p[1].Substring(2),16);
+                    string n=p[2];
+                    string clean=n.Replace("_WIRELESS","").Replace("_WIRED","").Replace("_RECEIVER","").Replace("_BLUETOOTH","").Replace("_ALT","").Replace('_',' ');
+                    string title=System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(clean.ToLowerInvariant())
+                        .Replace("Deathadder","DeathAdder").Replace("Blackwidow","BlackWidow").Replace("Deathstalker","DeathStalker")
+                        .Replace("Hyperspeed","HyperSpeed").Replace("Tkl","TKL");
+                    bool aa=new[] {"ATHERIS","BASILISK_X_HYPERSPEED","OROCHI_V2","DEATHADDER_V2_X","NAGA_V2_HYPERSPEED","VIPER_V3_HYPERSPEED","BASILISK_V3_X","BASILISK_MOBILE"}.Any(n.Contains);
+                    all[pid]=new RazerProfile {Transaction=tid,Name="Razer "+title,ReplaceableBattery=aa,Kind=kind,
+                        PreferredInterface=p.Length>=4?Int32.Parse(p[3]):-1,
+                        Connection=n.Contains("_WIRELESS")||n.Contains("_RECEIVER")?"2.4 GHz":n.Contains("_BLUETOOTH")?"Bluetooth":n.Contains("_WIRED")?"USB 有线":"2.4 GHz / USB"};
+                }
+            }
+        }
     }
 }

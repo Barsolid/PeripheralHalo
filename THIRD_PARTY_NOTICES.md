@@ -1,4 +1,4 @@
-# Third-party notices
+﻿# Third-party notices
 
 PeripheralHalo is distributed under GPL-2.0-only (see LICENSE).
 
@@ -23,6 +23,39 @@ The Windows HFP battery property identification and service discovery strategy w
 MIT License
 
 Copyright (c) 2026 Cyril Strone
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## HaloBattery (additional device protocols in version 1.1)
+
+The PA request/reply layouts for Razer BlackShark V2 Pro (2023) and Barracuda Pro,
+BlackShark V2 Pro (2020) power-state fixtures, Logitech headset product IDs / G535
+collection selection, and Centurion framing/discovery were adapted into independently
+written C# code from HaloBattery's public protocol descriptions and MIT-licensed
+providers. Tests contain attributed protocol fixtures, not evidence of local hardware validation.
+
+Source: https://github.com/HeyOkay/HaloBattery
+Files: providers/blackshark.py, providers/blackshark2020.py, providers/barracuda.py,
+providers/logitech.py, providers/logitech_centurion.py and the associated tests.
+MIT License
+
+Copyright (c) 2026 Halo Battery contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

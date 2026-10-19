@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+﻿// SPDX-License-Identifier: GPL-2.0-only
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -122,7 +122,7 @@ namespace PeripheralHalo
             var poll=new StackPanel {Margin=new Thickness(0,10,0,15)};poll.Children.Add(Text("刷新间隔",13,Palette.Text));var combo=new ComboBox {ItemsSource=new[] {15,30,60,120},SelectedItem=app.Config.PollSeconds,Margin=new Thickness(0,8,0,0),Height=30};combo.SelectionChanged+=delegate {if(combo.SelectedItem!=null) {app.Config.PollSeconds=(int)combo.SelectedItem;app.Save();app.RestartPolling();}};poll.Children.Add(combo);poll.Children.Add(Text("单位：秒。较长间隔可以减少设备唤醒。",10,Palette.Muted));body.Children.Add(poll);
             var legend=new StackPanel {Margin=new Thickness(0,6,0,16)};legend.Children.Add(Text("电量分层",13,Palette.Text));var chips=new WrapPanel {Margin=new Thickness(0,10,0,0)};foreach(var pair in new[] {Tuple.Create("75–100%",100),Tuple.Create("50–74%",60),Tuple.Create("21–49%",30),Tuple.Create("0–20%",10)}) {var chip=Pill(pair.Item1,Palette.Brush(BatteryPolicy.Color(pair.Item2)));chip.Margin=new Thickness(0,0,6,6);chips.Children.Add(chip);}legend.Children.Add(chips);body.Children.Add(legend);
             var buttons=new WrapPanel();var demo=Button(app.Demo?"返回真实设备":"预览演示",delegate {settingsOpen=false;app.SetDemo(!app.Demo);});demo.Margin=new Thickness(0,0,8,8);buttons.Children.Add(demo);var diag=Button("导出诊断",delegate {dismiss=false;try {app.ExportDiagnostics();}finally{dismiss=true;}});diag.Margin=new Thickness(0,0,8,8);buttons.Children.Add(diag);var taskbar=Button("任务栏设置",delegate {Process.Start("ms-settings:taskbar");});taskbar.Margin=new Thickness(0,0,8,8);buttons.Children.Add(taskbar);var quit=Button("退出应用",delegate {app.ExitApp();});quit.Margin=new Thickness(0,0,8,8);buttons.Children.Add(quit);body.Children.Add(buttons);
-            var about=Text("PeripheralHalo 1.0.0 · Windows 11\n真实读数与估算值分别标注。没有读数时不生成百分比。G435 的 LIGHTSPEED 精确电量读取暂未实现。",10,Palette.Muted);about.LineHeight=19;about.Margin=new Thickness(0,10,0,10);body.Children.Add(about);footer.Text="设置自动保存在此电脑";
+            var about=Text("PeripheralHalo 1.1.0 · Windows 11\n真实读数与估算值分别标注。没有读数时不生成百分比。G435 的 LIGHTSPEED 精确电量读取暂未实现。",10,Palette.Muted);about.LineHeight=19;about.Margin=new Thickness(0,10,0,10);body.Children.Add(about);footer.Text="设置自动保存在此电脑";
         }
         public void OpenPanel(bool settings=false)
         {

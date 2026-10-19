@@ -1,7 +1,8 @@
-// SPDX-License-Identifier: GPL-2.0-only
+﻿// SPDX-License-Identifier: GPL-2.0-only
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 namespace PeripheralHalo
 {
@@ -26,9 +27,10 @@ namespace PeripheralHalo
             var response=(byte[])request.Clone();response[1]=2;response[10]=255;response[89]=ProtocolDecoder.Checksum(response);
             check("Razer validates matched success",ProtocolDecoder.RazerValid(response,0x1F,0x80));check("Razer rejects unrelated transaction",!ProtocolDecoder.RazerValid(response,0x3F,0x80));check("Razer rejects unrelated command",!ProtocolDecoder.RazerValid(response,0x1F,0x84));
             response[10]^=1;check("Razer rejects corrupt checksum",!ProtocolDecoder.RazerValid(response,0x1F,0x80));response[89]=ProtocolDecoder.Checksum(response);response[1]=1;check("Razer rejects busy/stale reply",!ProtocolDecoder.RazerValid(response,0x1F,0x80));
-            check("Viper V3 Pro and legacy transactions",RazerProfile.All[0x00C1].Transaction==0x1F && RazerProfile.All[0x007B].Transaction==0xFF && RazerProfile.All[0x007D].Transaction==0x3F);check("AA device charging query excluded",RazerProfile.All[0x0094].ReplaceableBattery);check("69 Razer USB profiles",RazerProfile.All.Count==69);
+            check("Viper V3 Pro and legacy transactions",RazerProfile.All[0x00C1].Transaction==0x1F && RazerProfile.All[0x007B].Transaction==0xFF && RazerProfile.All[0x007D].Transaction==0x3F);check("AA device charging query excluded",RazerProfile.All[0x0094].ReplaceableBattery);check("68 mouse plus 13 keyboard USB profiles",RazerProfile.All.Count==81 && RazerProfile.All.Values.Count(p=>p.Kind==DeviceKind.Mouse)==68);
             check("G435 is headset",DeviceReading.InferKind("G435 LIGHTSPEED")==DeviceKind.Headset);check("unknown never displayed as percentage",new DeviceReading().Value=="—");check("stable ID ignores path case",BatteryPolicy.StableId("ABC")==BatteryPolicy.StableId("abc"));
             foreach(var demo in DemoDevices.Create()) check("demo isolated: "+demo.Name,demo.IsDemo);
+            AdapterTests.Run(check);
             results.Add(String.Format("{0} passed, {1} failed",results.Count-failed,failed));File.WriteAllLines(path,results,Encoding.UTF8);return failed==0?0:1;
         }
     }
