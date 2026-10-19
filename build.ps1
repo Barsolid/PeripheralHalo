@@ -1,4 +1,4 @@
-﻿param([switch]$Test)
+param([switch]$Test)
 $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
 $framework = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
@@ -16,7 +16,7 @@ if (Test-Path -LiteralPath (Join-Path $repoRoot 'assets\app.ico')) { $iconOption
 & $compiler /nologo /target:winexe /platform:x64 /optimize+ /utf8output "/out:$executable" "/win32manifest:$(Join-Path $repoRoot 'app.manifest')" "/resource:$(Join-Path $repoRoot 'src\razer-models.txt'),razer-models.txt" "/resource:$(Join-Path $repoRoot 'src\razer-keyboards.txt'),razer-keyboards.txt" $iconOptions $references $sources
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed.' }
 Copy-Item -LiteralPath (Join-Path $repoRoot 'PeripheralHalo.exe.config') -Destination $outDir
-foreach ($document in @('README.md','LICENSE','THIRD_PARTY_NOTICES.md')) { if (Test-Path -LiteralPath (Join-Path $repoRoot $document)) { Copy-Item -LiteralPath (Join-Path $repoRoot $document) -Destination $outDir } }
+foreach ($document in @('README.md','README.en.md','LICENSE','THIRD_PARTY_NOTICES.md')) { if (Test-Path -LiteralPath (Join-Path $repoRoot $document)) { Copy-Item -LiteralPath (Join-Path $repoRoot $document) -Destination $outDir } }
 if (Test-Path -LiteralPath (Join-Path $repoRoot 'docs')) { Copy-Item -LiteralPath (Join-Path $repoRoot 'docs') -Destination $outDir -Recurse -Force }
 if ($Test) {
     $resultPath = Join-Path $outDir 'test-results.txt'

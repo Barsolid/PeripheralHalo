@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-License-Identifier: GPL-2.0-only
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -31,6 +31,45 @@ namespace PeripheralHalo
         public Settings Config;
         public List<DeviceReading> Devices=new List<DeviceReading>();
         public bool Demo,Busy,Exiting;
+        public bool IsEnglish { get { return Config.Language=="en"; } }
+        public string Ui(string chinese,string english) { return IsEnglish?english:chinese; }
+        public string DeviceText(string text)
+        {
+            if(!IsEnglish || String.IsNullOrEmpty(text)) return text;
+            var pairs=new[] {
+                new[] {"设备报告电量，0–255 数值换算为百分比。","Battery reported by the device; raw value converted to a percentage."},
+                new[] {"已检测到 USB 接口；无法确认无线设备是否在线。可能处于休眠、未配对，或当前型号尚未适配。","USB interface detected. The wireless device may be asleep, unpaired, or unsupported; its online status cannot be confirmed."},
+                new[] {"已检测到 G435 接收器，不能据此判断耳机是否在线。LIGHTSPEED 精确电量读取暂未实现。按耳机电源键：绿灯 31–100%，红灯 15–30%，闪红灯低于 15%。","G435 receiver detected; this does not confirm the headset is online. Exact LIGHTSPEED battery reporting is not implemented. Press the headset power button: green 31–100%, red 15–30%, flashing red below 15%."},
+                new[] {"当前雷蛇 USB 型号尚无已登记电量协议。设备 HID 编号：","No battery protocol is registered for this Razer USB model. HID ID: "},
+                new[] {"设备以较粗档位上报电量，数值为近似值；不是精细百分比。","The device reports a coarse battery level. This is an estimate, not an exact percentage."},
+                new[] {"已确认充电；此型号充电时的电量数值不可靠，因此隐藏百分比。","Charging detected. This model reports unreliable battery values while charging, so the percentage is hidden."},
+                new[] {"设备直接报告电量。","Battery reported directly by the device."},
+                new[] {"设备报告电量；未收到充电回复时保留充电状态未知。","Battery reported by the device. Charging status remains unknown when no charging response is received."},
+                new[] {"已检测到接收器；尚未获得有效电量回复，可能休眠、关机或驱动占用。","Receiver detected, but no valid battery response was received. The device may be asleep, off, or claimed by another driver."},
+                new[] {"接收器已检测到，但耳机未返回有效电量；不沿用历史电量。","Receiver detected, but the headset returned no valid battery reading. Previous values are not reused."},
+                new[] {"仅显示当前已连接的蓝牙设备。电量由 Windows 缓存提供，更新速度取决于耳机上报；此接口不提供充电状态。","Only currently connected Bluetooth devices are shown. Windows provides a cached battery level; update frequency depends on the headset. This interface does not report charging status."},
+                new[] {"电压换算的百分比为估算值，可能与厂商软件不同。","Voltage-based percentage is an estimate and may differ from the manufacturer's software."},
+                new[] {"当前型号尚未适配","This model is not supported yet"},
+                new[] {"读取失败：","Read failed: "},
+                new[] {"档位估算","coarse-level estimate"},
+                new[] {"设备报告","device report"},
+                new[] {"电压估算","voltage estimate"},
+                new[] {"暂无可用电量协议","no battery protocol available"},
+                new[] {"演示数据","Demo data"},
+                new[] {"雷蛇 键盘 HID","Razer keyboard HID"},
+                new[] {"雷蛇 耳机 PA","Razer headset PA"},
+                new[] {"耳机电量","Headset battery"},
+                new[] {"USB 有线","Wired USB"},
+new[] {"G435 的 LIGHTSPEED 精确电量读取暂未实现。可按耳机电源键查看灯色：绿灯 31–100%，红灯 15–30%，闪红灯低于 15%。","Exact G435 LIGHTSPEED battery reporting is not implemented. Press the headset power button to check its LED: green 31–100%, red 15–30%, flashing red below 15%."},
+                new[] {"连接的无线设备尚无可读电量。","The connected wireless device has no readable battery value."},
+                new[] {"没有检测到支持的外设。","No supported peripherals detected."},
+                new[] {"点击查看所有设备","Click to view all devices"},
+                new[] {"电量暂不可用","Battery unavailable"},
+                new[] {"充电状态未知","Charging status unknown"}
+            };
+            foreach(var pair in pairs) text=text.Replace(pair[0],pair[1]);
+            return text;
+        }
         public DateTime LastRefresh;
         private MainWindow panel;
         private readonly DeviceScanner scanner=new DeviceScanner();
@@ -67,7 +106,7 @@ namespace PeripheralHalo
             if(value && !Config.Pinned.Contains(id)) Config.Pinned.Add(id);if(!value) Config.Pinned.Remove(id);
             Save();UpdateTray();panel.Render();
         }
-        public void Save() {try {Config.Save();}catch(Exception ex) {MessageBox.Show(panel,ex.Message,"设置保存失败");}}
+        public void Save() {try {Config.Save();}catch(Exception ex) {MessageBox.Show(panel,ex.Message,Ui("设置保存失败","Settings save failed"));}}
         public void RestartPolling() {poll.Stop();poll.Interval=TimeSpan.FromSeconds(Math.Max(15,Config.PollSeconds));poll.Start();}
         public void SetDemo(bool enabled)
         {
@@ -81,7 +120,7 @@ namespace PeripheralHalo
                 var readings=await Task.Run(delegate {if(clearCache) scanner.ClearCache();return scanner.Scan();});
                 if(!Exiting && !Demo && version==modeVersion) {Devices=readings;LastRefresh=DateTime.Now;UpdateTray();NotifyLow();}
             } catch(Exception ex) {
-                if(!Exiting && !Demo && version==modeVersion) {Devices=new List<DeviceReading>();UpdateTray();MessageBox.Show(panel,"设备扫描未完成："+ex.Message,"PeripheralHalo");}
+                if(!Exiting && !Demo && version==modeVersion) {Devices=new List<DeviceReading>();UpdateTray();MessageBox.Show(panel,Ui("设备扫描未完成：","Device scan failed: ")+ex.Message,"PeripheralHalo");}
             } finally {Busy=false;if(!Exiting) panel.Render();}
             if(!Demo && !Exiting && version!=modeVersion) await Refresh(true);
         }
@@ -96,9 +135,9 @@ namespace PeripheralHalo
                 if(!tray.TryGetValue(d.Id,out entry)) {
                     entry=new TrayEntry {Icon=new Forms.NotifyIcon()};
                     entry.Icon.MouseClick+=delegate(object sender,Forms.MouseEventArgs e) {if(e.Button==Forms.MouseButtons.Left) {if(panel.IsVisible) panel.Hide();else panel.OpenPanel();}};
-                    var menu=new Forms.ContextMenuStrip();menu.Items.Add("打开外设光环",null,delegate {panel.OpenPanel();});menu.Items.Add("刷新电量",null,async delegate {await Refresh(true);});menu.Items.Add("显示设置",null,delegate {panel.OpenPanel(true);});menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("退出",null,delegate {ExitApp();});entry.Icon.ContextMenuStrip=menu;tray[d.Id]=entry;
+                    var menu=new Forms.ContextMenuStrip();menu.Items.Add(Ui("打开外设光环","Open PeripheralHalo"),null,delegate {panel.OpenPanel();});menu.Items.Add(Ui("刷新电量","Refresh batteries"),null,async delegate {await Refresh(true);});menu.Items.Add(Ui("显示设置","Settings"),null,delegate {panel.OpenPanel(true);});menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add(Ui("退出","Exit"),null,delegate {ExitApp();});entry.Icon.ContextMenuStrip=menu;tray[d.Id]=entry;
                 }
-                string tooltip=(Demo?"[演示] ":"")+d.Name+" · "+d.Value+" · "+d.State;entry.Icon.Text=tooltip.Length>63?tooltip.Substring(0,63):tooltip;
+                entry.Icon.ContextMenuStrip.Items[0].Text=Ui("打开外设光环","Open PeripheralHalo");entry.Icon.ContextMenuStrip.Items[1].Text=Ui("刷新电量","Refresh batteries");entry.Icon.ContextMenuStrip.Items[2].Text=Ui("显示设置","Settings");entry.Icon.ContextMenuStrip.Items[4].Text=Ui("退出","Exit");string tooltip=(Demo?Ui("[演示] ","[Demo] "):"")+d.Name+" · "+d.Value+" · "+d.StateFor(IsEnglish);entry.Icon.Text=tooltip.Length>63?tooltip.Substring(0,63):tooltip;
             }
             DrawIcons(false);
             if(Config.Animations && SystemParameters.ClientAreaAnimation && desired.Any(d=>d.Charge==ChargeState.Charging)) animation.Start();else animation.Stop();
@@ -118,7 +157,7 @@ namespace PeripheralHalo
             foreach(var d in Devices.Where(d=>!d.IsDemo && d.Battery.HasValue)) {
                 if(d.Charge==ChargeState.Charging || d.Battery>=25) {lowNotified.Remove(d.Id);continue;}
                 if(d.Battery<=20 && d.Charge!=ChargeState.Full && Config.Notifications && lowNotified.Add(d.Id)) {
-                    var icon=tray.Values.FirstOrDefault();if(icon!=null) icon.Icon.ShowBalloonTip(5000,"外设电量偏低",d.Name+" 剩余 "+d.Value,Forms.ToolTipIcon.Warning);
+                    var icon=tray.Values.FirstOrDefault();if(icon!=null) icon.Icon.ShowBalloonTip(5000,Ui("外设电量偏低","Low peripheral battery"),d.Name+Ui(" 剩余 "," · ")+d.Value,Forms.ToolTipIcon.Warning);
                 }
             }
         }
@@ -132,7 +171,7 @@ namespace PeripheralHalo
         public void ExportDiagnostics()
         {
             var dialog=new SaveFileDialog {FileName="PeripheralHalo-diagnostics.txt",Filter="文本文件 (*.txt)|*.txt"};
-            if(dialog.ShowDialog(panel)==true) {try {WriteDiagnostics(dialog.FileName,Demo?new List<DeviceReading>():Devices);MessageBox.Show(panel,"诊断已保存。诊断文件不会自动上传。","PeripheralHalo");}catch(Exception ex) {MessageBox.Show(panel,ex.Message,"导出失败");}}
+            if(dialog.ShowDialog(panel)==true) {try {WriteDiagnostics(dialog.FileName,Demo?new List<DeviceReading>():Devices);MessageBox.Show(panel,Ui("诊断已保存。诊断文件不会自动上传。","Diagnostics saved locally. The file is not uploaded."),"PeripheralHalo");}catch(Exception ex) {MessageBox.Show(panel,ex.Message,Ui("导出失败","Export failed"));}}
         }
         public void ExitApp()
         {
@@ -147,7 +186,7 @@ namespace PeripheralHalo
                 if(args.Length>0 && args[0]=="--self-test") return SelfTests.Run(args.Length>1?args[1]:"test-results.txt");
                 if(args.Length>0 && args[0]=="--diagnose") {WriteDiagnostics(args.Length>1?args[1]:"diagnostics.txt",new DeviceScanner().Scan());return 0;}
                 if(args.Length>0 && args[0]=="--render-demo") {
-                    var app=new HaloApp(true,true);app.Config.Animations=false;var window=(MainWindow)app.MainWindow;
+                    var app=new HaloApp(true,true);if(args.Length>2 && args[2]=="en") app.Config.Language="en";app.Config.Animations=false;var window=(MainWindow)app.MainWindow;
                     app.Startup+=delegate {window.OpenPanel();var timer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(200)};timer.Tick+=delegate {timer.Stop();window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)window.ActualWidth,(int)window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(window);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var f=File.Create(args.Length>1?args[1]:"preview.png")) encoder.Save(f);app.ExitApp();};timer.Start();};
                     app.Run();return 0;
                 }

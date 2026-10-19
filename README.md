@@ -1,6 +1,10 @@
-﻿# PeripheralHalo · 外设光环
+# PeripheralHalo · 外设光环
 
 Windows 11 无线外设电量托盘应用。用一个带设备图标的圆环，看清鼠标、耳机与键盘的剩余电量。
+
+[English README](README.en.md)
+
+应用面板、设备状态和托盘菜单现可在设置中切换中文或英文。
 
 ![界面预览（演示数据）](docs/preview.png)
 

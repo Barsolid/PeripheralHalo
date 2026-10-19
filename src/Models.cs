@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-License-Identifier: GPL-2.0-only
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,7 +28,8 @@ namespace PeripheralHalo
         public bool IsDemo;
         public DateTime ObservedAt = DateTime.Now;
         public string Value { get { return Battery.HasValue ? (Estimated ? "≈" : "") + Battery.Value + "%" : "—"; } }
-        public string State { get { return Charge == ChargeState.Charging ? "正在充电" : Charge == ChargeState.Full ? "已充满" : Charge == ChargeState.Fault ? "充电异常" : Battery.HasValue ? (Estimated ? "估算电量" : "电量已读取") : "暂无读数"; } }
+        public string State { get { return StateFor(false); } }
+        public string StateFor(bool english) { return english ? (Charge == ChargeState.Charging ? "Charging" : Charge == ChargeState.Full ? "Fully charged" : Charge == ChargeState.Fault ? "Charging fault" : Battery.HasValue ? (Estimated ? "Estimated" : "Battery reported") : "No reading") : (Charge == ChargeState.Charging ? "正在充电" : Charge == ChargeState.Full ? "已充满" : Charge == ChargeState.Fault ? "充电异常" : Battery.HasValue ? (Estimated ? "估算电量" : "电量已读取") : "暂无读数"); }
         public static DeviceKind InferKind(string name)
         {
             string n = (name ?? "").ToLowerInvariant();
@@ -63,10 +64,11 @@ namespace PeripheralHalo
         [DataMember] public bool Animations = true;
         [DataMember] public bool Notifications = true;
         [DataMember] public int PollSeconds = 30;
+        [DataMember] public string Language = "zh";
         public static string Folder { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PeripheralHalo"); } }
         public static Settings Load()
         {
-            try { using (var f = File.OpenRead(Path.Combine(Folder, "settings.json"))) { var s=(Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(f); s.Pinned=s.Pinned ?? new List<string>(); s.PollSeconds=Math.Max(15, Math.Min(300,s.PollSeconds)); return s; } }
+            try { using (var f = File.OpenRead(Path.Combine(Folder, "settings.json"))) { var s=(Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(f); s.Pinned=s.Pinned ?? new List<string>(); s.PollSeconds=Math.Max(15, Math.Min(300,s.PollSeconds)); s.Language=s.Language=="en"?"en":"zh"; return s; } }
             catch { return new Settings(); }
         }
         public void Save()
